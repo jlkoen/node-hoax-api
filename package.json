@@ -4,8 +4,8 @@
   "description": "Node.js API backend for Hoax application",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon index",
-    "test": "jest --watch",
+    "dev": "cross-env NODE_ENV=dev nodemon index",
+    "test": "cross-env NODE_ENV=test jest --watch",
     "lint": "eslint ."
   },
   "repository": {
@@ -20,9 +20,14 @@
   },
   "homepage": "https://github.com/jlkoen/node-hoax-api#readme",
   "dependencies": {
-    "express": "^4.17.2"
+    "bcrypt": "^5.0.1",
+    "config": "^3.3.7",
+    "express": "^4.17.2",
+    "sequelize": "^6.15.0",
+    "sqlite3": "^5.0.2"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.3.0",
