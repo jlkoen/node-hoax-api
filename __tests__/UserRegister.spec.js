@@ -113,4 +113,26 @@ describe('User Registration', () => {
       expect(body.validationErrors[field]).toBe(expectedMessage);
     }
   );
+
+  it('creates user and set as inactive', async () => {
+    await postUser();
+    const users = await User.findAll();
+    const savedUser = users[0];
+    expect(savedUser.inactive).toBe(true);
+  });
+
+  it('creates user set as inactive even if the request body sets inactive false', async () => {
+    const newUser = { ...validUser, inactive: false };
+    await postUser(newUser);
+    const users = await User.findAll();
+    const savedUser = users[0];
+    expect(savedUser.inactive).toBe(true);
+  });
+
+  it('creates an activation token for user', async () => {
+    await postUser();
+    const users = await User.findAll();
+    const savedUser = users[0];
+    expect(savedUser.activationToken).toBeTruthy;
+  });
 });
