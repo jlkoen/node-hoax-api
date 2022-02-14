@@ -3,6 +3,7 @@ const app = require('../src/server');
 const sequelize = require('../src/config/db');
 const User = require('../src/user/User');
 const nodemailerStub = require('nodemailer-stub');
+const EmailService = require('../src/email/EmailService');
 
 beforeAll(() => {
   return sequelize.sync();
@@ -144,5 +145,33 @@ describe('User Registration', () => {
     const users = await User.findAll();
     const savedUser = users[0];
     expect(lastMail.content).toContain(savedUser.activationToken);
+  });
+
+  it('returns 502 Bad Gateway when sending email fails', async () => {
+    const mockSendAccountActivation = jest
+      .spyOn(EmailService, 'sendAccountActivation')
+      .mockRejectedValue({ message: 'Failed to deliver email' });
+    const response = await postUser();
+    expect(response.status).toBe(502);
+    mockSendAccountActivation.mockRestore();
+  });
+
+  it('returns Email failure message when sending email fails', async () => {
+    const mockSendAccountActivation = jest
+      .spyOn(EmailService, 'sendAccountActivation')
+      .mockRejectedValue({ message: 'Failed to deliver email' });
+    const response = await postUser();
+    mockSendAccountActivation.mockRestore();
+    expect(response.body.message).toBe('E-mail failure');
+  });
+
+  it('does not save user to database if activation email fails', async () => {
+    const mockSendAccountActivation = jest
+      .spyOn(EmailService, 'sendAccountActivation')
+      .mockRejectedValue({ message: 'Failed to deliver email' });
+    await postUser();
+    mockSendAccountActivation.mockRestore();
+    const users = await User.findAll();
+    expect(users.length).toBe(0);
   });
 });

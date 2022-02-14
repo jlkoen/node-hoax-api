@@ -38,9 +38,12 @@ router.post(
         .forEach((error) => (validationErrors[error.param] = error.msg));
       return res.status(400).send({ validationErrors: validationErrors });
     }
-    await UserService.save(req.body);
-
-    return res.send({ message: 'User created' });
+    try {
+      await UserService.save(req.body);
+      return res.send({ message: 'User created' });
+    } catch (err) {
+      return res.status(502).send({ message: 'E-mail failure' });
+    }
   }
 );
 
