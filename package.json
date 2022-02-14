@@ -37,10 +37,17 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "jest": "^27.4.7",
-    "nodemailer-stub": "^1.2.2",
+    "jest-watch-typeahead": "^1.0.0",
     "nodemon": "^2.0.15",
     "prettier": "^2.5.1",
     "prettier-eslint": "^13.0.0",
+    "smtp-server": "^3.9.0",
     "supertest": "^6.2.2"
+  },
+  "jest": {
+    "watchPlugins": [
+      "jest-watch-typeahead/filename",
+      "jest-watch-typeahead/testname"
+    ]
   }
 }
