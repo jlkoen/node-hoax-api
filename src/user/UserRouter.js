@@ -47,4 +47,18 @@ router.post(
   }
 );
 
+router.post('/api/v1/users/token/:token', async (req, res) => {
+  const token = req.params.token;
+  try {
+    await UserService.activate(token);
+  } catch (err) {
+    return res
+      .status(400)
+      .send({
+        message: 'This account is either active or the token is invalid',
+      });
+  }
+  res.send({ message: 'Account is activated' });
+});
+
 module.exports = router;
