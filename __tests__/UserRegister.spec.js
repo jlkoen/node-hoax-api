@@ -48,7 +48,8 @@ const validUser = {
 };
 
 const postUser = (user = validUser) => {
-  return request(app).post('/api/1.0/users').send(user);
+  const agent = request(app).post('/api/1.0/users').send(user);
+  return agent.send(user);
 };
 
 describe('User Registration', () => {

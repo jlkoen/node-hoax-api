@@ -1,8 +1,8 @@
 const express = require('express');
-const User = require('./User');
 const router = express.Router();
 const UserService = require('./UserService');
 const { check, validationResult } = require('express-validator');
+const ValidationException = require('../error/ValidationException');
 
 router.post(
   '/api/1.0/users',
@@ -17,7 +17,14 @@ router.post(
     .withMessage('E-mail cannot be null')
     .bail()
     .isEmail()
-    .withMessage('E-mail is not valid'),
+    .withMessage('E-mail is not valid')
+    .bail()
+    .custom(async (email) => {
+      const user = await UserService.findByEmail(email);
+      if (user) {
+        throw new Error('E-mail address in use');
+      }
+    }),
   check('password')
     .notEmpty()
     .withMessage('Password cannot be null')
@@ -29,34 +36,28 @@ router.post(
     .withMessage(
       'Password must have at least 1 uppercase, 1 lowercase letter and 1 number'
     ),
-  async (req, res) => {
+  async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const validationErrors = {};
-      errors
-        .array()
-        .forEach((error) => (validationErrors[error.param] = error.msg));
-      return res.status(400).send({ validationErrors: validationErrors });
+      return next(new ValidationException(errors.array()));
     }
     try {
       await UserService.save(req.body);
       return res.send({ message: 'User created' });
     } catch (err) {
-      return res.status(502).send({ message: 'E-mail failure' });
+      next(err);
     }
   }
 );
 
-router.post('/api/1.0/users/token/:token', async (req, res) => {
+router.post('/api/1.0/users/token/:token', async (req, res, next) => {
   const token = req.params.token;
   try {
     await UserService.activate(token);
+    return res.send({ message: 'Account is activated' });
   } catch (err) {
-    return res.status(400).send({
-      message: 'This account is either active or the token is invalid',
-    });
+    next(err);
   }
-  res.send({ message: 'Account is activated' });
 });
 
 module.exports = router;

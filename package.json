@@ -44,6 +44,31 @@
     "smtp-server": "^3.9.0",
     "supertest": "^6.2.2"
   },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2018
+    },
+    "extends": [
+      "eslint:recommended",
+      "plugin:prettier/recommended"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "env": {
+      "node": true,
+      "es6": true,
+      "jest": true
+    },
+    "rules": {
+      "eqeqeq": "warn",
+      "prettier/prettier": "warn"
+    }
+  },
+  "pretter": {
+    "singleQuote": true,
+    "priintWidth": 120
+  },
   "jest": {
     "watchPlugins": [
       "jest-watch-typeahead/filename",

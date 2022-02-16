@@ -11,7 +11,7 @@
     "host": "localhost",
     "port": 8587,
     "tls": {
-      "rejectUnautorized": false
+      "rejectUnauthorized": false
     }
   }
 }
