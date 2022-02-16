@@ -6,5 +6,13 @@
     "dialect": "sqlite",
     "storage": "./db.sqlite",
     "logging": false
+  },
+  "mail": {
+    "host": "smtp.ethereal.email",
+    "port": 587,
+    "auth": {
+      "user": "viva.von91@ethereal.email",
+      "pass": "wz9bgcPR1HgxUx931V"
+    }
   }
 }
