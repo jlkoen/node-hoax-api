@@ -9,7 +9,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  return User.destroy({ truncate: true });
+  return User.destroy({ truncate: { cascase: true } });
 });
 
 const activeUser = {

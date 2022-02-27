@@ -34,7 +34,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   simulateSmtpFailure = false;
-  return User.destroy({ truncate: true });
+  return User.destroy({ truncate: { cascade: true } });
 });
 
 afterAll(async () => {
