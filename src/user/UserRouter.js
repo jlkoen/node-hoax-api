@@ -100,4 +100,20 @@ router.put(
   }
 );
 
+router.delete(
+  '/api/1.0/users/:id',
+  tokenAuthentication,
+  async (req, res, next) => {
+    const authenticatedUser = req.authenticatedUser;
+    // eslint-disable-next-line eqeqeq
+    if (!authenticatedUser || authenticatedUser.id != req.params.id) {
+      return next(
+        new ForbiddenException('You are not authorized to delete the user')
+      );
+    }
+    await UserService.deleteUser(req.params.id);
+    res.send();
+  }
+);
+
 module.exports = router;
