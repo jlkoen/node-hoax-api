@@ -4,6 +4,7 @@ const UserService = require('./UserService');
 const { check, validationResult } = require('express-validator');
 const ValidationException = require('../error/ValidationException');
 const pagination = require('../middleware/pagination');
+const NotFoundException = require('../error/NotFoundException');
 const ForbiddenException = require('../error/ForbiddenException');
 
 router.post(
@@ -102,4 +103,22 @@ router.delete('/api/1.0/users/:id', async (req, res, next) => {
   res.send();
 });
 
+router.post(
+  '/api/1.0/password-reset',
+  check('email').isEmail().withMessage('E-mail is not valid'),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new ValidationException(errors.array()));
+    }
+    try {
+      await UserService.passwordResetRequest(req.body.email);
+      return res.send({
+        message: 'Check your e-mail for resetting your password',
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 module.exports = router;
