@@ -3,13 +3,45 @@ const app = require('../src/server');
 const User = require('../src/user/User');
 const sequelize = require('../src/config/db');
 const bcrypt = require('bcrypt');
+const SMTPServer = require('smtp-server').SMTPServer;
+const config = require('config');
+
+let lastMail, server;
+let simulateSmtpFailure = false;
 
 beforeAll(async () => {
+  server = new SMTPServer({
+    authOptional: true,
+    onData(stream, session, callback) {
+      let mailBody;
+      stream.on('data', (data) => {
+        mailBody += data.toString();
+      });
+      stream.on('end', () => {
+        if (simulateSmtpFailure) {
+          const err = new Error('Invalid mailbox');
+          err.responseCode = 553;
+          return callback(err);
+        }
+        lastMail = mailBody;
+        callback();
+      });
+    },
+  });
+
+  await server.listen(config.mail.port, 'localhost');
   await sequelize.sync();
+  jest.setTimeout(20000);
 });
 
 beforeEach(async () => {
+  simulateSmtpFailure = false;
   await User.destroy({ truncate: { cascade: true } });
+});
+
+afterAll(async () => {
+  await server.close();
+  jest.setTimeout(5000);
 });
 
 const activeUser = {
@@ -69,5 +101,21 @@ describe('Password Reset Request', () => {
     await postPasswordReset(user.email);
     const userInDB = await User.findOne({ where: { email: user.email } });
     expect(userInDB.passwordResetToken).toBeTruthy();
+  });
+
+  it('sends a password reset email with passwordResetToken', async () => {
+    const user = await addUser();
+    await postPasswordReset(user.email);
+    const userInDB = await User.findOne({ where: { email: user.email } });
+    const passwordResetToken = userInDB.passwordResetToken;
+    expect(lastMail).toContain('user1@mail.com');
+    expect(lastMail).toContain(passwordResetToken);
+  });
+
+  it('returns 502 Bad Gateway when sending email fails', async () => {
+    simulateSmtpFailure = true;
+    const user = await addUser();
+    const response = await postPasswordReset(user.email);
+    expect(response.status).toBe(502);
   });
 });
