@@ -104,7 +104,7 @@ router.delete('/api/1.0/users/:id', async (req, res, next) => {
 });
 
 router.post(
-  '/api/1.0/password-reset',
+  '/api/1.0/user/password',
   check('email').isEmail().withMessage('E-mail is not valid'),
   async (req, res, next) => {
     const errors = validationResult(req);

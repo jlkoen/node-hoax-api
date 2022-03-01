@@ -58,7 +58,7 @@ const addUser = async (user = { ...activeUser }) => {
 };
 
 const postPasswordReset = (email = 'user1@mail.com') => {
-  const agent = request(app).post('/api/1.0/password-reset');
+  const agent = request(app).post('/api/1.0/user/password');
   return agent.send({ email: email });
 };
 
@@ -71,7 +71,7 @@ describe('Password Reset Request', () => {
   it('returns error body with for unknown email for password reset request', async () => {
     const nowInMillis = new Date().getTime();
     const response = await postPasswordReset('user1@mail.com');
-    expect(response.body.path).toBe('/api/1.0/password-reset');
+    expect(response.body.path).toBe('/api/1.0/user/password');
     expect(response.body.timestamp).toBeGreaterThan(nowInMillis);
     expect(response.body.message).toBe('E-mail not found');
   });
