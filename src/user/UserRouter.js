@@ -121,4 +121,43 @@ router.post(
     }
   }
 );
+
+const passwordResetTokenValidator = async (req, res, next) => {
+  const user = await UserService.findByPasswordResetToken(
+    req.body.passwordResetToken
+  );
+  if (!user) {
+    return next(
+      new ForbiddenException(
+        'You are not authorized to update your password. Please follow the password reset steps again.'
+      )
+    );
+    next();
+  }
+  next();
+};
+
+router.put(
+  '/api/1.0/user/password',
+  passwordResetTokenValidator,
+  check('password')
+    .notEmpty()
+    .withMessage('Password cannot be null')
+    .bail()
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters')
+    .bail()
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/)
+    .withMessage(
+      'Password must have at least 1 uppercase, 1 lowercase letter and 1 number'
+    ),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new ValidationException(errors.array()));
+    }
+    await UserService.updatePassword(req.body);
+    res.send();
+  }
+);
 module.exports = router;
