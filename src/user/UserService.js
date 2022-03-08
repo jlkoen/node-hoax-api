@@ -1,15 +1,13 @@
 const User = require('./User');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const EmailService = require('../email/EmailService');
 const sequelize = require('../config/db');
 const EmailException = require('../email/EmailException');
 const InvalidTokenException = require('./InvalidTokenException');
-const UserNotFoundException = require('./UserNotFoundException');
-
-const generateToken = (length) => {
-  return crypto.randomBytes(length).toString('hex').substring(0, length);
-};
+const NotFoundException = require('../error/NotFoundException');
+const Sequelize = require('sequelize');
+const { randomString } = require('../shared/generator');
+const TokenService = require('../auth/TokenService');
 
 const save = async (body) => {
   const { username, email, password } = body;
@@ -18,7 +16,7 @@ const save = async (body) => {
     username,
     email,
     password: hash,
-    activationToken: generateToken(16),
+    activationToken: randomString(16),
   };
   const transaction = await sequelize.transaction();
   await User.create(user, { transaction });
@@ -45,11 +43,15 @@ const activate = async (token) => {
   await user.save();
 };
 
-const getUsers = async (page, size) => {
-  const pageSize = 10;
+const getUsers = async (page, size, authenticatedUser) => {
   const usersWithCount = await User.findAndCountAll({
-    where: { inactive: false },
-    attributes: ['id', 'username', 'email'],
+    where: {
+      inactive: false,
+      id: {
+        [Sequelize.Op.not]: authenticatedUser ? authenticatedUser.id : 0,
+      },
+    },
+    attributes: ['id', 'username', 'email', 'image'],
     limit: size,
     offset: page * size,
   });
@@ -67,12 +69,69 @@ const getUser = async (id) => {
       id: id,
       inactive: false,
     },
-    attributes: ['id', 'username', 'email'],
+    attributes: ['id', 'username', 'email', 'image'],
   });
   if (!user) {
-    throw new UserNotFoundException();
+    throw new NotFoundException('User not found');
   }
   return user;
 };
 
-module.exports = { save, findByEmail, activate, getUsers, getUser };
+const updateUser = async (id, updatedBody) => {
+  const user = await User.findOne({ where: { id: id } });
+  user.username = updatedBody.username;
+  user.image = updatedBody.image;
+  await user.save();
+  return {
+    id: id,
+    username: user.username,
+    email: user.email,
+    image: user.image,
+  };
+};
+
+const deleteUser = async (id) => {
+  await User.destroy({ where: { id: id } });
+};
+
+const passwordResetRequest = async (email) => {
+  const user = await findByEmail(email);
+  if (!user) {
+    throw new NotFoundException('E-mail not found');
+  }
+  user.passwordResetToken = randomString(16);
+  await user.save();
+  try {
+    await EmailService.sendPasswordReset(email, user.passwordResetToken);
+  } catch (err) {
+    throw new EmailException();
+  }
+};
+
+const updatePassword = async (updateRequest) => {
+  const user = await findByPasswordResetToken(updateRequest.passwordResetToken);
+  const hash = await bcrypt.hash(updateRequest.password, 10);
+  user.password = hash;
+  user.passwordResetToken = null;
+  user.inactive = false;
+  user.activationToken = null;
+  await user.save();
+  await TokenService.clearTokens(user.id);
+};
+
+const findByPasswordResetToken = (token) => {
+  return User.findOne({ where: { passwordResetToken: token } });
+};
+
+module.exports = {
+  save,
+  findByEmail,
+  activate,
+  getUsers,
+  getUser,
+  updateUser,
+  deleteUser,
+  passwordResetRequest,
+  updatePassword,
+  findByPasswordResetToken,
+};

@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../src/server');
 const sequelize = require('../src/config/db');
 const User = require('../src/user/User');
+const bcrypt = require('bcrypt');
 const { beforeFindAfterExpandIncludeAll } = require('../src/user/User');
 
 beforeAll(async () => {
@@ -9,19 +10,36 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  return User.destroy({ truncate: true });
+  return User.destroy({ truncate: { cascade: true } });
 });
 
-const getUsers = () => {
-  return request(app).get('/api/1.0/users');
+const auth = async (options = {}) => {
+  let token;
+  if (options.auth) {
+    const response = await request(app)
+      .post('/api/1.0/auth')
+      .send(options.auth);
+    token = response.body.token;
+  }
+  return token;
+};
+
+const getUsers = (options = {}) => {
+  const agent = request(app).get('/api/1.0/users');
+  if (options.token) {
+    agent.set('Authorization', `Bearer ${options.token}`);
+  }
+  return agent;
 };
 
 const addUsers = async (activeUserCount, inactiveUserCount = 0) => {
+  const hash = await bcrypt.hash('P4ssword', 10);
   for (let i = 0; i < activeUserCount + inactiveUserCount; i++) {
     await User.create({
       username: `user${i + 1}`,
       email: `user${i + 1}@mail.com`,
       inactive: i >= activeUserCount,
+      password: hash,
     });
   }
 };
@@ -54,11 +72,11 @@ describe('Listing Users', () => {
     expect(response.body.content.length).toBe(6);
   });
 
-  it('returns only id, username, and email in content array for each user', async () => {
+  it('returns only id, username, email, and image in content array for each user', async () => {
     await addUsers(11);
     const response = await getUsers();
     const user = response.body.content[0];
-    expect(Object.keys(user)).toEqual(['id', 'username', 'email']);
+    expect(Object.keys(user)).toEqual(['id', 'username', 'email', 'image']);
   });
 
   it('returns 2 as totalPages when 15 active 7 inactive users in database', async () => {
@@ -107,6 +125,17 @@ describe('Listing Users', () => {
     expect(response.body.size).toBe(10);
     expect(response.body.page).toBe(0);
   });
+
+  it('returns user page without logged in user when request has valid authorization', async () => {
+    await addUsers(11);
+    const token = await auth({
+      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+    });
+    const response = await getUsers({
+      token: token,
+    });
+    expect(response.body.totalPages).toBe(1);
+  });
 });
 
 describe('Get User', () => {
@@ -137,14 +166,19 @@ describe('Get User', () => {
     expect(response.status).toBe(200);
   });
 
-  it('returns id, username and email in response body when an active user exist', async () => {
+  it('returns id, username, email, and image in response body when an active user exist', async () => {
     const user = await User.create({
       username: 'user1',
       email: 'user1@mail.com',
       inactive: false,
     });
     const response = await getUser(user.id);
-    expect(Object.keys(response.body)).toEqual(['id', 'username', 'email']);
+    expect(Object.keys(response.body)).toEqual([
+      'id',
+      'username',
+      'email',
+      'image',
+    ]);
   });
 
   it('returns 404 when the user is inactive', async () => {
