@@ -8,6 +8,7 @@ const NotFoundException = require('../error/NotFoundException');
 const Sequelize = require('sequelize');
 const { randomString } = require('../shared/generator');
 const TokenService = require('../auth/TokenService');
+const FileService = require('../file/FileService');
 
 const save = async (body) => {
   const { username, email, password } = body;
@@ -80,7 +81,9 @@ const getUser = async (id) => {
 const updateUser = async (id, updatedBody) => {
   const user = await User.findOne({ where: { id: id } });
   user.username = updatedBody.username;
-  user.image = updatedBody.image;
+  if (updatedBody.image) {
+    user.image = await FileService.saveProfileImage(updatedBody.image);
+  }
   await user.save();
   return {
     id: id,
