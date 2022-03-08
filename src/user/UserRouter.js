@@ -87,8 +87,8 @@ router.put('/api/1.0/users/:id', async (req, res, next) => {
       new ForbiddenException('You are not authorized to update user')
     );
   }
-  await UserService.updateUser(req.params.id, req.body);
-  return res.send();
+  const user = await UserService.updateUser(req.params.id, req.body);
+  return res.send(user);
 });
 
 router.delete('/api/1.0/users/:id', async (req, res, next) => {
