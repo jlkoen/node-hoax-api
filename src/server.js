@@ -15,7 +15,7 @@ const ONE_YEAR_IN_MILLIS = 365 * 24 * 60 * 60 * 1000;
 FileService.createFolders();
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
 
 app.use(
   '/images',
