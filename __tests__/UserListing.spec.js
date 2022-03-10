@@ -6,7 +6,9 @@ const bcrypt = require('bcrypt');
 const { beforeFindAfterExpandIncludeAll } = require('../src/user/User');
 
 beforeAll(async () => {
-  await sequelize.sync();
+  if (process.env.NODE_ENV === 'test') {
+    await sequelize.sync();
+  }
 });
 
 beforeEach(() => {
