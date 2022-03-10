@@ -6,6 +6,7 @@ const ValidationException = require('../error/ValidationException');
 const pagination = require('../middleware/pagination');
 const NotFoundException = require('../error/NotFoundException');
 const ForbiddenException = require('../error/ForbiddenException');
+const FileService = require('../file/FileService');
 
 router.post(
   '/api/1.0/users',
@@ -87,13 +88,18 @@ router.put(
     .bail()
     .isLength({ min: 4, max: 32 })
     .withMessage('Must have min 4 and max 32 characters'),
-  check('image').custom((imageAsBase64String) => {
+  check('image').custom(async (imageAsBase64String) => {
     if (!imageAsBase64String) {
       return true;
     }
     const buffer = Buffer.from(imageAsBase64String, 'base64');
-    if (buffer.length > 2 * 1024 * 1024) {
+    if (!FileService.isLessThan2MB(buffer)) {
       throw new Error('Your profile image cannot be bigger than 2MB');
+    }
+
+    const supportedType = await FileService.isSupportedFileType(buffer);
+    if (!supportedType) {
+      throw new Error('Only JPEG or PNG files are allowed');
     }
     return true;
   }),
