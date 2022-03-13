@@ -6,6 +6,7 @@ const ValidationException = require('../error/ValidationException');
 const pagination = require('../middleware/pagination');
 const NotFoundException = require('../error/NotFoundException');
 const ForbiddenException = require('../error/ForbiddenException');
+const FileService = require('../file/FileService');
 
 router.post(
   '/api/1.0/users',
@@ -79,17 +80,45 @@ router.get('/api/1.0/users/:id', async (req, res, next) => {
   }
 });
 
-router.put('/api/1.0/users/:id', async (req, res, next) => {
-  const authenticatedUser = req.authenticatedUser;
+router.put(
+  '/api/1.0/users/:id',
+  check('username')
+    .notEmpty()
+    .withMessage('Username cannot be null')
+    .bail()
+    .isLength({ min: 4, max: 32 })
+    .withMessage('Must have min 4 and max 32 characters'),
+  check('image').custom(async (imageAsBase64String) => {
+    if (!imageAsBase64String) {
+      return true;
+    }
+    const buffer = Buffer.from(imageAsBase64String, 'base64');
+    if (!FileService.isLessThan2MB(buffer)) {
+      throw new Error('Your profile image cannot be bigger than 2MB');
+    }
 
-  if (!authenticatedUser || authenticatedUser.id != req.params.id) {
-    return next(
-      new ForbiddenException('You are not authorized to update user')
-    );
+    const supportedType = await FileService.isSupportedFileType(buffer);
+    if (!supportedType) {
+      throw new Error('Only JPEG or PNG files are allowed');
+    }
+    return true;
+  }),
+  async (req, res, next) => {
+    const authenticatedUser = req.authenticatedUser;
+
+    if (!authenticatedUser || authenticatedUser.id != req.params.id) {
+      return next(
+        new ForbiddenException('You are not authorized to update user')
+      );
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new ValidationException(errors.array()));
+    }
+    const user = await UserService.updateUser(req.params.id, req.body);
+    return res.send(user);
   }
-  const user = await UserService.updateUser(req.params.id, req.body);
-  return res.send(user);
-});
+);
 
 router.delete('/api/1.0/users/:id', async (req, res, next) => {
   const authenticatedUser = req.authenticatedUser;
