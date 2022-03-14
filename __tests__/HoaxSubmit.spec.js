@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../src/server');
 const User = require('../src/user/User');
+const Hoax = require('../src/hoax/Hoax');
 const sequelize = require('../src/config/db');
 const bcrypt = require('bcrypt');
 
@@ -11,6 +12,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await Hoax.destroy({ truncate: true });
   await User.destroy({ truncate: { cascade: true } });
 });
 
@@ -51,6 +53,7 @@ describe('Post Hoax', () => {
     const response = await postHoax();
     expect(response.status).toBe(401);
   });
+
   it('returns error body with message when unauthorized request sent', async () => {
     const nowInMillis = Date.now();
     const response = await postHoax();
@@ -59,6 +62,7 @@ describe('Post Hoax', () => {
     expect(error.message).toBe('You are not authorized to post hoax');
     expect(error.timestamp).toBeGreaterThan(nowInMillis);
   });
+
   it('returns 200 when valid hoax submitted with authorized user', async () => {
     await addUser();
     const response = await postHoax(
@@ -66,5 +70,30 @@ describe('Post Hoax', () => {
       { auth: credentials }
     );
     expect(response.status).toBe(200);
+  });
+
+  it('saves the hoax to database when authorized user sends valid request', async () => {
+    await addUser();
+    await postHoax({ content: 'Hoax content' }, { auth: credentials });
+    const hoaxes = await Hoax.findAll();
+    expect(hoaxes.length).toBe(1);
+  });
+  it('saves the hoax content and timestamp to database', async () => {
+    await addUser();
+    const beforeSubmit = Date.now();
+    await postHoax({ content: 'Hoax content' }, { auth: credentials });
+    const hoaxes = await Hoax.findAll();
+    const savedHoax = hoaxes[0];
+    expect(savedHoax.content).toBe('Hoax content');
+    expect(savedHoax.timestamp).toBeGreaterThan(beforeSubmit);
+    expect(savedHoax.timestamp).toBeLessThan(Date.now());
+  });
+  it('returns success message on hoax submit', async () => {
+    await addUser();
+    const response = await postHoax(
+      { content: 'Hoax content' },
+      { auth: credentials }
+    );
+    expect(response.body.message).toBe('Hoax is saved');
   });
 });
