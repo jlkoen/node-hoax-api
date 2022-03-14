@@ -4,7 +4,7 @@
   "description": "Node.js API backend for Hoax application",
   "main": "server.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=dev nodemon index",
+    "dev": "cross-env NODE_ENV=development nodemon index",
     "test": "cross-env NODE_ENV=test jest --watch",
     "posttest": "cross-env NODE_ENV=test node test-cleanup",
     "lint": "eslint .",
