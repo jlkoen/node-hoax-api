@@ -16,8 +16,8 @@ beforeAll(async () => {
   }
 });
 
-beforeEach(() => {
-  return User.destroy({ truncate: { cascase: true } });
+beforeEach(async () => {
+  await User.destroy({ truncate: { cascade: true } });
 });
 
 const activeUser = {
@@ -26,6 +26,8 @@ const activeUser = {
   password: 'P4ssword',
   inactive: false,
 };
+
+const credentials = { email: 'user1@mail.com', password: 'P4ssword' };
 
 const addUser = async (user = { ...activeUser }) => {
   const hash = await bcrypt.hash(user.password, 10);
@@ -52,7 +54,7 @@ const putUser = async (id = 5, body = null, options = {}) => {
 
 const readFileAsBase64 = (file = 'test-png.png') => {
   const filePath = path.join('.', '__tests__', 'resources', file);
-  return fs.readFileSync(filePath, { encoding: 'base64' }).toString();
+  return fs.readFileSync(filePath, { encoding: 'base64' });
 };
 
 describe('User Update', () => {
@@ -85,7 +87,7 @@ describe('User Update', () => {
       email: 'user2@mail.com',
     });
     const response = await putUser(userToBeUpdated.id, null, {
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     expect(response.status).toBe(403);
   });
@@ -93,7 +95,7 @@ describe('User Update', () => {
   it('returns forbidden when update request is sent by inactive user with correct credentials for its own user', async () => {
     const inactiveUser = await addUser({ ...activeUser, inactive: true });
     const response = await putUser(inactiveUser.id, null, {
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     expect(response.status).toBe(403);
   });

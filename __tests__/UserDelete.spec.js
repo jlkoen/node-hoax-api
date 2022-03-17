@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../src/server');
 const User = require('../src/user/User');
+const Hoax = require('../src/hoax/Hoax');
 const sequelize = require('../src/config/db');
 const bcrypt = require('bcrypt');
 const Token = require('../src/auth/Token');
@@ -21,6 +22,8 @@ const activeUser = {
   password: 'P4ssword',
   inactive: false,
 };
+
+const credentials = { email: 'user1@mail.com', password: 'P4ssword' };
 
 const addUser = async (user = { ...activeUser }) => {
   const hash = await bcrypt.hash(user.password, 10);
@@ -64,7 +67,7 @@ describe('User Delete', () => {
       email: 'user2@mail.com',
     });
     const token = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     const response = await deleteUser(userToBeDelete.id, { token: token });
     expect(response.status).toBe(403);
@@ -78,7 +81,7 @@ describe('User Delete', () => {
   it('returns 200 ok when delete request sent from authorized user', async () => {
     const savedUser = await addUser();
     const token = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     const response = await deleteUser(savedUser.id, { token: token });
     expect(response.status).toBe(200);
@@ -87,7 +90,7 @@ describe('User Delete', () => {
   it('deletes user from database when request sent from authorized user', async () => {
     const savedUser = await addUser();
     const token = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: { credentials },
     });
     await deleteUser(savedUser.id, { token: token });
 
@@ -98,7 +101,7 @@ describe('User Delete', () => {
   it('deletes token from database when delete user request sent from authorized user', async () => {
     const savedUser = await addUser();
     const token = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     await deleteUser(savedUser.id, { token: token });
 
@@ -109,14 +112,29 @@ describe('User Delete', () => {
   it('deletes all tokens from database when delete user request sent from authorized user', async () => {
     const savedUser = await addUser();
     const token1 = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     const token2 = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: credentials,
     });
     await deleteUser(savedUser.id, { token: token1 });
 
     const tokenInDB = await Token.findOne({ where: { token: token2 } });
     expect(tokenInDB).toBeNull();
+  });
+
+  it('deletes hoax from database when delete user request sent from authorized user', async () => {
+    const savedUser = await addUser();
+    const token = await auth({ auth: credentials });
+
+    await request(app)
+      .post('/api/1.0/hoaxes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ content: 'Hoax content' });
+
+    await deleteUser(savedUser.id, { token: token });
+
+    const hoaxes = await Hoax.findAll();
+    expect(hoaxes.length).toBe(0);
   });
 });
