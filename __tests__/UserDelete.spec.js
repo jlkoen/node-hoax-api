@@ -90,7 +90,7 @@ describe('User Delete', () => {
   it('deletes user from database when request sent from authorized user', async () => {
     const savedUser = await addUser();
     const token = await auth({
-      auth: { email: 'user1@mail.com', password: 'P4ssword' },
+      auth: { credentials },
     });
     await deleteUser(savedUser.id, { token: token });
 

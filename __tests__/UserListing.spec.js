@@ -11,8 +11,8 @@ beforeAll(async () => {
   }
 });
 
-beforeEach(() => {
-  return User.destroy({ truncate: { cascade: true } });
+beforeEach(async () => {
+  await User.destroy({ truncate: { cascade: true } });
 });
 
 const auth = async (options = {}) => {

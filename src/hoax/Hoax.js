@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const Sequelize = require('sequelize');
 const sequelize = require('../config/db');
 
 const Model = Sequelize.Model;
@@ -16,7 +16,7 @@ Hoax.init(
   },
   {
     sequelize,
-    modelname: 'hoax',
+    modelName: 'hoax',
     timestamps: false,
   }
 );

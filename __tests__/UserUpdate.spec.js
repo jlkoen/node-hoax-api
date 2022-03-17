@@ -16,8 +16,8 @@ beforeAll(async () => {
   }
 });
 
-beforeEach(() => {
-  return User.destroy({ truncate: { cascase: true } });
+beforeEach(async () => {
+  await User.destroy({ truncate: { cascade: true } });
 });
 
 const activeUser = {
@@ -54,7 +54,7 @@ const putUser = async (id = 5, body = null, options = {}) => {
 
 const readFileAsBase64 = (file = 'test-png.png') => {
   const filePath = path.join('.', '__tests__', 'resources', file);
-  return fs.readFileSync(filePath, { encoding: 'base64' }).toString();
+  return fs.readFileSync(filePath, { encoding: 'base64' });
 };
 
 describe('User Update', () => {

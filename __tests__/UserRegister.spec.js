@@ -33,12 +33,12 @@ beforeAll(async () => {
   if (process.env.NODE_ENV === 'test') {
     await sequelize.sync();
   }
-  jest.setTimeout(2000);
+  jest.setTimeout(20000);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   simulateSmtpFailure = false;
-  return User.destroy({ truncate: { cascade: true } });
+  await User.destroy({ truncate: { cascade: true } });
 });
 
 afterAll(async () => {
